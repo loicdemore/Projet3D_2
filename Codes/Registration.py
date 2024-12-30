@@ -36,12 +36,11 @@ def est_lin_transf(im_ref, im_mov, mask = None, verbose = False):
         print("Affine registration:")
         print(f'Final metric value: {registration_method.GetMetricValue()}')
         print(f"Optimizer stop condition: {registration_method.GetOptimizerStopConditionDescription()}")
-        print(f"Number of iterations: {registration_method.GetOptimizerIteration()}")
         print("--------")
     
     return final_transform
 
-def est_nl_transf(im_ref, im_mov):
+def est_nl_transf(im_ref, im_mov, mask = None, verbose = False):
     """
     Estimate non-linear (BSpline) transform to align `im_mov` to `im_ref`
     and return the transform parameters.
@@ -54,6 +53,9 @@ def est_nl_transf(im_ref, im_mov):
     registration_method.SetMetricSamplingStrategy(registration_method.RANDOM)
     registration_method.SetMetricSamplingPercentage(0.01)
     
+    if mask is not None:
+        registration_method.SetMetricFixedMask(mask)
+
     # Interpolation
     registration_method.SetInterpolator(sitk.sitkLinear)
     
@@ -72,6 +74,14 @@ def est_nl_transf(im_ref, im_mov):
     
     # Perform registration
     final_transform = registration_method.Execute(im_ref, im_mov)
+
+    if verbose:
+        print("--------")
+        print("Non-linear registration:")
+        print(f'Final metric value: {registration_method.GetMetricValue()}')
+        print(f"Optimizer stop condition: {registration_method.GetOptimizerStopConditionDescription()}")
+        print(f"Final Iteration: {registration_method.GetOptimizerIteration()}")
+        print("--------")
     
     return final_transform
 
