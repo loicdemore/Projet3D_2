@@ -60,7 +60,7 @@ def est_nl_transf(im_ref, im_mov, mask = None, verbose = False):
     registration_method.SetInterpolator(sitk.sitkLinear)
     
     # Optimizer settings
-    registration_method.SetOptimizerAsLBFGSB(gradientConvergenceTolerance=1e-5, numberOfIterations=50, maximumNumberOfCorrections=5, maximumNumberOfFunctionEvaluations=500)
+    registration_method.SetOptimizerAsLBFGSB(gradientConvergenceTolerance=1e-5, numberOfIterations=500, maximumNumberOfCorrections=5, maximumNumberOfFunctionEvaluations=500)
     
     # Transformation model (BSpline)
     grid_physical_spacing = [50.0] * im_ref.GetDimension()  # Grid spacing in physical units
