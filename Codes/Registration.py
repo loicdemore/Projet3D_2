@@ -1,6 +1,6 @@
 import SimpleITK as sitk
 
-def est_lin_transf(im_ref, im_mov):
+def est_lin_transf(im_ref, im_mov, mask = None, verbose = False):
     """
     Estimate linear (affine) transform to align `im_mov` to `im_ref`
     and return the transform parameters.
@@ -13,22 +13,34 @@ def est_lin_transf(im_ref, im_mov):
     registration_method.SetMetricSamplingStrategy(registration_method.RANDOM)
     registration_method.SetMetricSamplingPercentage(0.01)  # Use a small percentage of pixels for speed
     
+    if mask is not None:
+        registration_method.SetMetricFixedMask(mask)
+        
     # Interpolation
     registration_method.SetInterpolator(sitk.sitkLinear)
     
     # Optimizer settings
-    registration_method.SetOptimizerAsGradientDescent(learningRate=1.0, numberOfIterations=100, convergenceMinimumValue=1e-6, convergenceWindowSize=10)
+    registration_method.SetOptimizerAsGradientDescent(learningRate=1, numberOfIterations=500, convergenceMinimumValue=1e-3, convergenceWindowSize=20)
+    registration_method.SetOptimizerScalesFromPhysicalShift()
     
     # Transformation model
     initial_transform = sitk.CenteredTransformInitializer(im_ref, im_mov, sitk.AffineTransform(im_ref.GetDimension()), sitk.CenteredTransformInitializerFilter.GEOMETRY)
     registration_method.SetInitialTransform(initial_transform, inPlace=False)
     
     # Perform registration
-    final_transform = registration_method.Execute(im_ref, im_mov)
+    final_transform = registration_method.Execute(sitk.Cast(im_ref, sitk.sitkFloat32), 
+                                                  sitk.Cast(im_mov, sitk.sitkFloat32))
+
+    if verbose:
+        print("--------")
+        print("Affine registration:")
+        print(f'Final metric value: {registration_method.GetMetricValue()}')
+        print(f"Optimizer stop condition: {registration_method.GetOptimizerStopConditionDescription()}")
+        print("--------")
     
     return final_transform
 
-def est_nl_transf(im_ref, im_mov):
+def est_nl_transf(im_ref, im_mov, mask = None, verbose = False):
     """
     Estimate non-linear (BSpline) transform to align `im_mov` to `im_ref`
     and return the transform parameters.
@@ -41,11 +53,14 @@ def est_nl_transf(im_ref, im_mov):
     registration_method.SetMetricSamplingStrategy(registration_method.RANDOM)
     registration_method.SetMetricSamplingPercentage(0.01)
     
+    if mask is not None:
+        registration_method.SetMetricFixedMask(mask)
+
     # Interpolation
     registration_method.SetInterpolator(sitk.sitkLinear)
     
     # Optimizer settings
-    registration_method.SetOptimizerAsLBFGSB(gradientConvergenceTolerance=1e-5, numberOfIterations=50, maximumNumberOfCorrections=5, maximumNumberOfFunctionEvaluations=500)
+    registration_method.SetOptimizerAsLBFGSB(gradientConvergenceTolerance=1e-5, numberOfIterations=500, maximumNumberOfCorrections=5, maximumNumberOfFunctionEvaluations=500)
     
     # Transformation model (BSpline)
     grid_physical_spacing = [50.0] * im_ref.GetDimension()  # Grid spacing in physical units
@@ -59,6 +74,14 @@ def est_nl_transf(im_ref, im_mov):
     
     # Perform registration
     final_transform = registration_method.Execute(im_ref, im_mov)
+
+    if verbose:
+        print("--------")
+        print("Non-linear registration:")
+        print(f'Final metric value: {registration_method.GetMetricValue()}')
+        print(f"Optimizer stop condition: {registration_method.GetOptimizerStopConditionDescription()}")
+        print(f"Final Iteration: {registration_method.GetOptimizerIteration()}")
+        print("--------")
     
     return final_transform
 
